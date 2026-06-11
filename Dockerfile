@@ -50,4 +50,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npx next start"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npx prisma db seed && npx next start"]
