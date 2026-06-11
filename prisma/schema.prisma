@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("ASSOCIE") // ADMIN | ASSOCIE
+  associeId    String?  @unique
+  associe      Associe? @relation(fields: [associeId], references: [id])
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─── ASSOCIÉS ─────────────────────────────────────────
+
+model Associe {
+  id        String          @id @default(cuid())
+  nom       String
+  prenom    String
+  telephone String?
+  partPct   Float           @default(50.0)
+  user      User?
+  retraits  RetraitCaisse[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+// ─── FOURNISSEURS ─────────────────────────────────────
+
+model Fournisseur {
+  id        String    @id @default(cuid())
+  nom       String
+  telephone String?
+  adresse   String?
+  wilaya    String?
+  notes     String?
+  achats    Achat[]
+  produits  Produit[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ─── CATALOGUE PRODUITS (matières premières) ──────────
+
+model Produit {
+  id            String       @id @default(cuid())
+  designation   String
+  reference     String?      @unique
+  typeProduit   String       @default("AUTRE") // PROFILE_ALU | VITRAGE | JOINT | QUINCAILLERIE | COLLE_MOUSSE | MOTEUR_VOLET | AUTRE
+  unite         String       @default("PIECE") // ML | M2 | KG | PIECE | BARRE | ROULEAU | BOITE
+  prixUnitaire  Float        @default(0)
+  stockActuel   Float        @default(0)
+  stockMinimum  Float        @default(0)
+  fournisseurId String?
+  fournisseur   Fournisseur? @relation(fields: [fournisseurId], references: [id])
+  lignesAchat   LigneAchat[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+// ─── ACHATS FOURNISSEURS ──────────────────────────────
+
+model Achat {
+  id            String          @id @default(cuid())
+  reference     String          @unique
+  fournisseurId String
+  fournisseur   Fournisseur     @relation(fields: [fournisseurId], references: [id])
+  dateAchat     DateTime        @default(now())
+  montantTotal  Float           @default(0)
+  montantPaye   Float           @default(0)
+  resteAPayer   Float           @default(0)
+  statut        String          @default("NON_PAYE") // NON_PAYE | PARTIELLEMENT_PAYE | PAYE
+  notes         String?
+  lignes        LigneAchat[]
+  paiements     PaiementAchat[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model LigneAchat {
+  id           String   @id @default(cuid())
+  achatId      String
+  achat        Achat    @relation(fields: [achatId], references: [id], onDelete: Cascade)
+  produitId    String?
+  produit      Produit? @relation(fields: [produitId], references: [id])
+  designation  String
+  quantite     Float
+  prixUnitaire Float
+  montantTotal Float
+  createdAt    DateTime @default(now())
+}
+
+model PaiementAchat {
+  id              String   @id @default(cuid())
+  achatId         String
+  achat           Achat    @relation(fields: [achatId], references: [id], onDelete: Cascade)
+  montant         Float
+  datePaiement    DateTime @default(now())
+  modePaiement    String   @default("espèces")
+  notes           String?
+  createdAt       DateTime @default(now())
+}
+
+// ─── CLIENTS ─────────────────────────────────────────
+
+model Client {
+  id        String    @id @default(cuid())
+  nom       String
+  prenom    String?
+  telephone String?
+  adresse   String?
+  wilaya    String?
+  notes     String?
+  devis     Devis[]
+  factures  Facture[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ─── DEVIS ───────────────────────────────────────────
+
+model Devis {
+  id           String      @id @default(cuid())
+  reference    String      @unique
+  clientId     String
+  client       Client      @relation(fields: [clientId], references: [id])
+  dateDevis    DateTime    @default(now())
+  dateValidite DateTime?
+  montantHT    Float       @default(0)
+  tva          Float       @default(0)
+  montantTTC   Float       @default(0)
+  statut       String      @default("BROUILLON") // BROUILLON | ENVOYE | ACCEPTE | REFUSE | CONVERTI
+  notes        String?
+  lignes       LigneDevis[]
+  factures     Facture[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model LigneDevis {
+  id           String   @id @default(cuid())
+  devisId      String
+  devis        Devis    @relation(fields: [devisId], references: [id], onDelete: Cascade)
+  designation  String
+  description  String?
+  unite        String   @default("unité")
+  quantite     Float
+  prixUnitaire Float
+  montantTotal Float
+  ordre        Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
+// ─── FACTURES ────────────────────────────────────────
+
+model Facture {
+  id           String          @id @default(cuid())
+  reference    String          @unique
+  clientId     String
+  client       Client          @relation(fields: [clientId], references: [id])
+  devisId      String?
+  devis        Devis?          @relation(fields: [devisId], references: [id])
+  dateFacture  DateTime        @default(now())
+  dateEcheance DateTime?
+  montantHT    Float           @default(0)
+  tva          Float           @default(0)
+  montantTTC   Float           @default(0)
+  montantPaye  Float           @default(0)
+  resteAPayer  Float           @default(0)
+  statut       String          @default("EN_ATTENTE") // EN_ATTENTE | PARTIELLEMENT_PAYEE | PAYEE | ANNULEE
+  notes        String?
+  lignes       LigneFacture[]
+  paiements    PaiementFacture[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model LigneFacture {
+  id           String   @id @default(cuid())
+  factureId    String
+  facture      Facture  @relation(fields: [factureId], references: [id], onDelete: Cascade)
+  designation  String
+  description  String?
+  unite        String   @default("unité")
+  quantite     Float
+  prixUnitaire Float
+  montantTotal Float
+  ordre        Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model PaiementFacture {
+  id              String   @id @default(cuid())
+  factureId       String
+  facture         Facture  @relation(fields: [factureId], references: [id], onDelete: Cascade)
+  montant         Float
+  datePaiement    DateTime @default(now())
+  modePaiement    String   @default("espèces")
+  notes           String?
+  createdAt       DateTime @default(now())
+}
+
+// ─── CAISSE ─────────────────────────────────────────
+
+model Caisse {
+  id        String   @id @default(cuid())
+  solde     Float    @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model TransactionCaisse {
+  id              String          @id @default(cuid())
+  type            String          @default("ENTREE") // ENTREE | SORTIE | RETRAIT | AJUSTEMENT
+  montant         Float
+  soldeAvant      Float
+  soldeApres      Float
+  description     String
+  refType         String?
+  refId           String?
+  dateTransaction DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+}
+
+model RetraitCaisse {
+  id          String   @id @default(cuid())
+  associeId   String
+  associe     Associe  @relation(fields: [associeId], references: [id])
+  montant     Float
+  dateRetrait DateTime @default(now())
+  notes       String?
+  createdAt   DateTime @default(now())
+}

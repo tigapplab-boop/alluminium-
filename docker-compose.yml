@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-aluatelier}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-aluatelier123}
+      POSTGRES_DB: ${DB_NAME:-aluatelier}
+    volumes:
+      - alu-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-aluatelier}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-aluatelier}:${DB_PASSWORD:-aluatelier123}@db:5432/${DB_NAME:-aluatelier}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
+      NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost:3000}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  alu-postgres:

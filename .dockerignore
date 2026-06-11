@@ -1,0 +1,29 @@
+node_modules
+.next
+.git
+.gitignore
+
+# Old project copy
+alu-atelier
+
+# Skills & agent files (not needed in Docker)
+skills
+agent-ctx
+
+# Docs & logs
+*.md
+worklog*.md
+CLAUDE.md
+AGENTS.md
+
+# Upload & temp
+upload
+download
+bun.lock
+
+# Docker files (no need to copy themselves)
+docker-compose*.yml
+
+# IDE
+.vscode
+.idea
