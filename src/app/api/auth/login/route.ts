@@ -64,6 +64,16 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
 
+    // Set access token in httpOnly cookie for middleware
+    response.cookies.set('access_token', accessToken, {
+      httpOnly: false, // Allow JS to read for client-side store
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 60 * 60 * 24, // 24 hours
+    })
+
+    // Set refresh token in httpOnly cookie
     response.cookies.set('refresh_token', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

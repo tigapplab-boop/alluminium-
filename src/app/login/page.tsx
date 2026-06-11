@@ -46,9 +46,15 @@ export default function LoginPage() {
 
       if (res.data.success && res.data.data) {
         const { accessToken, user } = res.data.data
+        
+        // Store token in cookie for middleware to use
+        document.cookie = `access_token=${accessToken}; path=/; max-age=${60 * 60 * 24}`
+        
         setAccessToken(accessToken)
         setUser(user)
-        router.push('/')
+        
+        // Redirect to dashboard after successful login
+        router.push('/dashboard')
       } else {
         setServerError(res.data.error || 'Erreur lors de la connexion')
       }
