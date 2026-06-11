@@ -24,11 +24,12 @@ export default function LoginPage() {
   const setAccessToken = useAuthStore((s) => s.setAccessToken)
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -39,6 +40,8 @@ export default function LoginPage() {
 
   const onSubmit = async (values: LoginFormData) => {
     setServerError(null)
+    setIsLoading(true)
+    
     try {
       const res = await axios.post('/api/auth/login', values, {
         withCredentials: true,
@@ -47,26 +50,31 @@ export default function LoginPage() {
       if (res.data.success && res.data.data) {
         const { accessToken, user } = res.data.data
         
-        // Store token in cookie for middleware to use
-        document.cookie = `access_token=${accessToken}; path=/; max-age=${60 * 60 * 24}`
-        
+        // Store token in zustand store
         setAccessToken(accessToken)
         setUser(user)
         
-        // Redirect to dashboard after successful login
-        router.push('/dashboard')
+        // Small delay to ensure state is set before navigation
+        setTimeout(() => {
+          router.push('/dashboard')
+          router.refresh()
+        }, 100)
       } else {
         setServerError(res.data.error || 'Erreur lors de la connexion')
+        setIsLoading(false)
       }
     } catch (err: unknown) {
-      const error = err as { response?: { status?: number; data?: { error?: string } }; data?: { error?: string } }
+      console.error('Login error:', err)
+      const error = err as { response?: { status?: number; data?: { error?: string } } }
+      
       if (error.response?.status === 401) {
-        setServerError(error.response.data?.error || 'Nom d\'utilisateur ou mot de passe incorrect')
+        setServerError('Nom d\'utilisateur ou mot de passe incorrect')
       } else if (error.response?.data?.error) {
         setServerError(error.response.data.error)
       } else {
         setServerError('Erreur de connexion au serveur. Veuillez réessayer.')
       }
+      setIsLoading(false)
     }
   }
 
@@ -123,6 +131,7 @@ export default function LoginPage() {
               autoComplete="username"
               error={errors.username?.message}
               {...register('username')}
+              disabled={isLoading}
             />
 
             {/* Password */}
@@ -139,12 +148,14 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Entrez votre mot de passe"
                   autoComplete="current-password"
+                  disabled={isLoading}
                   className={
                     'flex h-10 w-full rounded-lg border border-alu-border bg-alu-bg px-3 py-2 pr-10 text-sm ' +
                     'text-alu-text placeholder:text-alu-muted ' +
                     'transition-colors duration-150 ' +
                     'focus:outline-none focus:ring-2 focus:ring-alu-accent/50 focus:border-alu-accent ' +
-                    (errors.password ? 'border-alu-danger focus:ring-alu-danger/50 focus:border-alu-danger' : '')
+                    (errors.password ? 'border-alu-danger focus:ring-alu-danger/50 focus:border-alu-danger' : '') +
+                    (isLoading ? ' opacity-50 cursor-not-allowed' : '')
                   }
                   aria-invalid={errors.password ? 'true' : undefined}
                   aria-describedby={errors.password ? 'password-error' : undefined}
@@ -156,6 +167,7 @@ export default function LoginPage() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-alu-muted hover:text-alu-sub transition-colors"
                   aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                   tabIndex={-1}
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -175,7 +187,8 @@ export default function LoginPage() {
             <Button
               type="submit"
               size="lg"
-              loading={isSubmitting}
+              loading={isLoading}
+              disabled={isLoading}
               className="w-full"
             >
               <LogIn className="h-5 w-5" />
