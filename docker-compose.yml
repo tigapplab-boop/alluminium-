@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-aluatelier}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-aluatelier123}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Km7gxTWqagcT8nOp7jkK9yI76dIh5EjDEtf7mUjK4}
       POSTGRES_DB: ${DB_NAME:-aluatelier}
     volumes:
       - alu-postgres:/var/lib/postgresql/data
@@ -20,11 +20,11 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-3001}:3000"
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-aluatelier}:${DB_PASSWORD:-aluatelier123}@db:5432/${DB_NAME:-aluatelier}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
-      NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost:3000}
+      DATABASE_URL: postgresql://${DB_USER:-aluatelier}:${DB_PASSWORD:-Km7gxTWqagcT8nOp7jkK9yI76dIh5EjDEtf7mUjK4}@db:5432/${DB_NAME:-aluatelier}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-3b51792d83add639dc31c451aadb0dd5ea5001ad07e3d83cf71e243c2aae219816515e6e9819d9b20931b08ffed35d32416c5b20b191b8e706f5041602a564ca}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3001}
     depends_on:
       db:
         condition: service_healthy
